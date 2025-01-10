@@ -1,4 +1,4 @@
-module requests
+module requests-go
 
 go 1.23.4
 
