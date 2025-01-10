@@ -128,13 +128,16 @@ func (p Node) WalkElements(fn func(node Node) (more bool, err error)) error {
 func (p Node) GetElementByID(id string) (Node, error) {
 	var result Node
 
-	p.WalkElements(func(node Node) (more bool, err error) {
+	err := p.WalkElements(func(node Node) (more bool, err error) {
 		if id, ok := node.ID(); ok && id == "id" {
 			result = node
 			return false, nil
 		}
 		return true, nil
 	})
+	if err != nil {
+		return Node{}, err
+	}
 
 	return result, nil
 }
@@ -143,12 +146,15 @@ func (p Node) GetElementByID(id string) (Node, error) {
 func (p Node) GetElementsByClassName(name string) ([]Node, error) {
 	var result []Node
 
-	p.WalkElements(func(node Node) (more bool, err error) {
+	err := p.WalkElements(func(node Node) (more bool, err error) {
 		if list, ok := node.ClassList(); ok && slices.Contains(list, name) {
 			result = append(result, node)
 		}
 		return true, nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	return result, nil
 }
@@ -157,12 +163,15 @@ func (p Node) GetElementsByClassName(name string) ([]Node, error) {
 func (p Node) GetElementsByTagName(name string) ([]Node, error) {
 	var result []Node
 
-	p.WalkElements(func(node Node) (more bool, err error) {
+	err := p.WalkElements(func(node Node) (more bool, err error) {
 		if tagName, ok := node.TagName(); ok && tagName == name {
 			result = append(result, node)
 		}
 		return true, nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	return result, nil
 }
