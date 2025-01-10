@@ -1,0 +1,19 @@
+linters:
+  enable:
+    - asciicheck
+    - err113
+    - errcheck
+    - errname
+    - errorlint
+    - exhaustive
+    - fatcontext
+    - gci
+    - gofmt
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - sloglint
+    - staticcheck
+    - unused
+    - whitespace
