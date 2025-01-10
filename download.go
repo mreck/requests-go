@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 )
 
+// Download fetches data from a remote source and stores it in a file
 func (c *Client) Download(url string, method string, body io.Reader, dst string) error {
 	if c.cfg.CreateDirs {
 		dirs := filepath.Base(dst)
@@ -36,6 +37,7 @@ func (c *Client) Download(url string, method string, body io.Reader, dst string)
 	return nil
 }
 
+// GetDownload wraps Download, simplifying sending GET requests
 func (c *Client) GetDownload(url string, dst string) error {
 	return c.Download(url, http.MethodGet, nil, dst)
 }
