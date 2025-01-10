@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"requests-go"
+	requests "requests-go"
 )
 
 func main() {
