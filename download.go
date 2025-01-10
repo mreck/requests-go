@@ -9,7 +9,7 @@ import (
 )
 
 func (c *Client) Download(url string, method string, body io.Reader, dst string) error {
-	if c.cfg.createDirs {
+	if c.cfg.CreateDirs {
 		dirs := filepath.Base(dst)
 		if err := os.MkdirAll(dirs, os.ModePerm); err != nil {
 			return fmt.Errorf("creating dirs failed: %w", err)

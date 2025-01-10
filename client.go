@@ -10,7 +10,7 @@ import (
 type Config struct {
 	UserAgent  string
 	Referer    string
-	createDirs bool
+	CreateDirs bool
 }
 
 type Client struct {
