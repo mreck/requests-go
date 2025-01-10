@@ -1,4 +1,4 @@
-module requests-go
+module github.com/mreck/requests-go
 
 go 1.23.4
 

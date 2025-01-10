@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	requests "requests-go"
+	requests "github.com/mreck/requests-go"
 )
 
 func main() {
@@ -31,6 +31,6 @@ func main() {
 	}
 
 	for _, node := range nodes {
-		log.Println(node)
+		log.Println(node.ClassList())
 	}
 }
