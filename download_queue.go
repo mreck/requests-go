@@ -2,7 +2,6 @@ package requestsgo
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 )
@@ -16,42 +15,55 @@ type downloadQueueJob struct {
 	Dst string
 }
 
-// DownloadQueueError hold the information of a queued download that failed
-type DownloadQueueError struct {
+// DownloadQueueResult holds the information of a completed or failed download
+type DownloadQueueResult struct {
 	url string
 	dst string
 	err error
 }
 
 // URL returns the URL
-func (err DownloadQueueError) URL() string { return err.url }
+func (err DownloadQueueResult) URL() string { return err.url }
 
 // Dst returns the destination
-func (err DownloadQueueError) Dst() string { return err.dst }
+func (err DownloadQueueResult) Dst() string { return err.dst }
 
-// Err returns the error
-func (err DownloadQueueError) Err() error { return err.err }
+// Error returns the error
+func (err DownloadQueueResult) Error() error { return err.err }
 
-// Error returns the formated error string
-func (err DownloadQueueError) Error() string {
-	return fmt.Sprintf("downloading %s -> %s failed: %s", err.url, err.dst, err.err)
-}
+// Failed returns if the download failed
+func (err DownloadQueueResult) Failed() bool { return err.err != nil }
+
+// Succeeded returns if the download succeeded
+func (err DownloadQueueResult) Succeeded() bool { return err.err == nil }
 
 // DownloadQueueConfig holds the config for the DownloadQueue
 type DownloadQueueConfig struct {
-	WorkerCount uint
+	WorkerCount     uint
+	RecordSuccesses bool
+	RecordFailures  bool
+	Timeout         time.Duration
 }
+
+var (
+	DefaultDownloadQueueConfig = DownloadQueueConfig{
+		WorkerCount:     4,
+		RecordSuccesses: false,
+		RecordFailures:  true,
+		Timeout:         0,
+	}
+)
 
 // DownloadQueue manages a queue and workers for downloading files
 type DownloadQueue struct {
-	cfg     DownloadQueueConfig
-	waitG   sync.WaitGroup
-	jobs    []downloadQueueJob
-	mJobs   sync.Mutex
-	errors  []DownloadQueueError
-	mErrors sync.Mutex
-	closed  bool
-	mClosed sync.Mutex
+	cfg      DownloadQueueConfig
+	waitG    sync.WaitGroup
+	jobs     []downloadQueueJob
+	mJobs    sync.Mutex
+	results  []DownloadQueueResult
+	mResults sync.Mutex
+	closed   bool
+	mClosed  sync.Mutex
 }
 
 // CreateDownloadQueue creates a new DownloadQueue
@@ -71,8 +83,10 @@ func (client *Client) CreateDownloadQueue(cfg DownloadQueueConfig) *DownloadQueu
 					time.Sleep(200 * time.Millisecond)
 				} else {
 					err := client.GetDownload(job.URL, job.Dst)
-					if err != nil {
-						queue.addError(job, err)
+					queue.addResult(job, err)
+
+					if cfg.Timeout > 0 {
+						time.Sleep(cfg.Timeout)
 					}
 				}
 			}
@@ -98,11 +112,18 @@ func (queue *DownloadQueue) nextJob() (downloadQueueJob, bool) {
 	return job, true
 }
 
-func (queue *DownloadQueue) addError(job downloadQueueJob, err error) {
-	queue.mErrors.Lock()
-	defer queue.mErrors.Unlock()
+func (queue *DownloadQueue) addResult(job downloadQueueJob, err error) {
+	queue.mResults.Lock()
+	defer queue.mResults.Unlock()
 
-	queue.errors = append(queue.errors, DownloadQueueError{url: job.URL, dst: job.Dst, err: err})
+	if (queue.cfg.RecordSuccesses && err == nil) ||
+		(queue.cfg.RecordFailures && err != nil) {
+		queue.results = append(queue.results, DownloadQueueResult{
+			url: job.URL,
+			dst: job.Dst,
+			err: err,
+		})
+	}
 }
 
 // IsClosed return if the DownloadQueue is closed
@@ -121,12 +142,52 @@ func (queue *DownloadQueue) Close() {
 	queue.closed = true
 }
 
-// Errors returns the errors that occured in the DownloadQueue
-func (queue *DownloadQueue) Errors() []DownloadQueueError {
-	queue.mErrors.Lock()
-	defer queue.mErrors.Unlock()
+// Results returns the results collected by the queue
+func (queue *DownloadQueue) Results() []DownloadQueueResult {
+	queue.mResults.Lock()
+	defer queue.mResults.Unlock()
 
-	return queue.errors
+	var errors []DownloadQueueResult
+
+	for _, result := range queue.results {
+		if result.Failed() {
+			errors = append(errors, result)
+		}
+	}
+
+	return errors
+}
+
+// Successes returns the uccesses collected by the queue
+func (queue *DownloadQueue) Successes() []DownloadQueueResult {
+	queue.mResults.Lock()
+	defer queue.mResults.Unlock()
+
+	var errors []DownloadQueueResult
+
+	for _, result := range queue.results {
+		if result.Succeeded() {
+			errors = append(errors, result)
+		}
+	}
+
+	return errors
+}
+
+// Errors returns the errors collected by the queue
+func (queue *DownloadQueue) Errors() []DownloadQueueResult {
+	queue.mResults.Lock()
+	defer queue.mResults.Unlock()
+
+	var errors []DownloadQueueResult
+
+	for _, result := range queue.results {
+		if result.Failed() {
+			errors = append(errors, result)
+		}
+	}
+
+	return errors
 }
 
 // Enqueue adds a new download to the queue
