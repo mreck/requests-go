@@ -11,7 +11,7 @@ import (
 // Download fetches data from a remote source and stores it in a file
 func (c *Client) Download(url string, method string, body io.Reader, dst string) error {
 	if c.cfg.CreateDirs {
-		dirs := filepath.Base(dst)
+		dirs := filepath.Dir(dst)
 		if err := os.MkdirAll(dirs, os.ModePerm); err != nil {
 			return fmt.Errorf("creating dirs failed: %w", err)
 		}
