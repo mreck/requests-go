@@ -85,6 +85,11 @@ func (p Node) DataSet() (map[string]string, bool) {
 	return result, true
 }
 
+// Src returns the Node src attribute, if the node is an element
+func (p Node) Src() (string, bool) {
+	return p.Attr("src")
+}
+
 // WalkNodes iterates through the node tree, until an error or more=false is returned
 func (p Node) WalkNodes(fn func(node Node) (more bool, err error)) error {
 	_, err := p.walkNodes(p.root, fn)
